@@ -131,7 +131,7 @@ def check(clip):
         "top-left": (0, bh, 0, bw), "top-right": (0, bh, W - bw, W),
         "bottom-left": (H - bh, H, 0, bw), "bottom-right": (H - bh, H, W - bw, W),
     }
-    findings = []
+    findings, examined = [], []
     for name, (y0, y1, x0, x1) in corners.items():
         zone = still_edges[y0:y1, x0:x1]
         if zone.mean() < MIN_COVERAGE:
@@ -139,12 +139,15 @@ def check(clip):
         ys, xs = np.nonzero(zone)
         ry0, ry1 = max(0, y0 + ys.min() - 4), y0 + ys.max() + 5
         rx0, rx1 = max(0, x0 + xs.min() - 4), x0 + xs.max() + 5
-        hits = _overlay_words(_ocr(median[ry0:ry1, rx0:rx1]))
+        words = _ocr(median[ry0:ry1, rx0:rx1])
+        examined.append({"corner": name, "coverage": round(float(zone.mean()), 4),
+                         "ocr": [[w, round(c)] for w, c in words][:12]})
+        hits = _overlay_words(words)
         if hits:
             findings.append({"corner": name, "text": " ".join(hits)[:80]})
 
     return {"status": "flagged" if findings else "clean",
-            "motion": round(motion, 1), "findings": findings}
+            "motion": round(motion, 1), "findings": findings, "examined": examined}
 
 
 def main():

@@ -56,7 +56,7 @@ class OverlayCheckTest(unittest.TestCase):
         clip = os.path.join(self.tmp, "wm.mp4")
         make_clip(clip, watermark="RETROCLIPS.COM")
         result = overlay_check.check(clip)
-        self.assertEqual(result["status"], "flagged")
+        self.assertEqual(result["status"], "flagged", result)
         self.assertEqual(result["findings"][0]["corner"], "bottom-left")
 
     def test_static_shot_is_inconclusive(self):
@@ -114,7 +114,7 @@ class QcGateTest(unittest.TestCase):
     def test_watermark_fails_despite_clean_report(self):
         make_clip(self.clip, watermark="RETROCLIPS.COM")
         r = self.gate()
-        self.assertEqual(r.returncode, 1)
+        self.assertEqual(r.returncode, 1, r.stdout + r.stderr)
         self.assertIn("watermark", r.stderr)
 
     @unittest.skipUnless(HAVE_MEDIA_TOOLS, "needs ffmpeg and tesseract")
