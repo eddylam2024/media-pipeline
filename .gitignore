@@ -1,0 +1,26 @@
+# Secrets — never commit
+ig_config.json
+.env
+
+# Generated media and per-run artifacts (regenerable)
+queue/
+posted/
+skipped/
+runs/
+cache/
+qc_frames_*/
+*.mp4
+*.mov
+*.jpg
+
+# Runtime state written by the pipeline
+news.json
+performance.json
+performance_lessons.json
+reel_posted.json
+pending_reel.json
+dashboard_audit.jsonl
+search_*.json
+
+__pycache__/
+.DS_Store

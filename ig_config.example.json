@@ -1,0 +1,6 @@
+{
+  "ig_user_id": "YOUR_INSTAGRAM_BUSINESS_ACCOUNT_ID",
+  "access_token": "YOUR_LONG_LIVED_ACCESS_TOKEN",
+  "app_id": "YOUR_META_APP_ID",
+  "app_secret": "YOUR_META_APP_SECRET"
+}

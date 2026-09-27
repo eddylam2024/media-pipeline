@@ -1,0 +1,110 @@
+{
+  "google_news_queries": [
+    "reboot OR remaster OR remake announcement game",
+    "nintendo OR playstation OR xbox announcement",
+    "GTA 6 OR \"GTA VI\"",
+    "disney OR pixar remake",
+    "90s OR 2000s franchise return",
+    "discontinued product nostalgia",
+    "anniversary edition game OR movie",
+    "Y2K OR early 2000s fashion trend",
+    "MySpace OR AIM OR Vine OR Tumblr OR Neopets",
+    "Motorola Razr OR iPod OR BlackBerry nostalgia",
+    "Disney Channel OR Nickelodeon reboot OR reunion",
+    "boy band OR 2000s pop reunion tour",
+    "discontinued snack OR fast food item returns",
+    "Tamagotchi OR Furby OR Webkinz revival",
+    "Skype OR AIM OR ICQ shutdown nostalgia",
+    "90s OR 2000s sitcom cast reunion",
+    "Pokemon card OR Beanie Baby collectible nostalgia",
+    "Blockbuster Video OR mall arcade nostalgia",
+    "emo OR pop-punk band reunion tour",
+    "cereal mascot OR fast food mascot nostalgia",
+    "flip phone OR Motorola Sidekick nostalgia",
+    "early YouTube creator reunion nostalgia",
+    "PS2 OR GameCube remaster announcement"
+  ],
+  "wisdom_search_queries": [
+    "specific turning point that made a named founder successful with dates and numbers",
+    "athlete who was cut or rejected then broke a named record archival",
+    "founder fired from own company then built a bigger named company",
+    "public figure who was denied or shelved then achieved a named milestone",
+    "celebrity childhood loss or struggle that directly shaped a specific role",
+    "inventor rejected before creating a named product that sold millions"
+  ],
+  "reddit_subreddits": [
+    "nostalgia",
+    "gaming",
+    "movies",
+    "television",
+    "popculturechat",
+    "2000s",
+    "GenZ",
+    "InternetIsBeautiful"
+  ],
+  "rss_feeds": [
+    "https://www.theverge.com/rss/index.xml",
+    "https://www.polygon.com/rss/index.xml",
+    "https://feeds.ign.com/ign/all",
+    "https://www.engadget.com/rss.xml",
+    "https://screenrant.com/feed/",
+    "https://www.nintendolife.com/feeds/latest"
+  ],
+  "notes": "Edit freely. collect_news.py fetches and normalizes; the collector AGENT applies the nostalgia-angle filter — sources here should be broad enough to catch bridgeable news, the agent discards the rest.",
+  "story_templates": {
+    "_readme": "Video-scout footage plans per story type. Each role gets its own searches; NOW prefers official channels/trailers, THEN prefers original-era gameplay/commercials/archive. Velocity is only a tiebreaker WITHIN a role. Titles/channels suggesting commentary (reaction, explained, 'my thoughts', news recap) are strongly penalized — footage beats talking heads.",
+    "remake_remaster": {
+      "now": [
+        "<title> official trailer",
+        "<title> remake gameplay",
+        "<title> announcement trailer"
+      ],
+      "then": [
+        "<original title> original gameplay <platform>",
+        "<original title> longplay",
+        "<original title> commercial <era>"
+      ]
+    },
+    "franchise_return": {
+      "now": [
+        "<franchise> official trailer <year>",
+        "<franchise> reveal"
+      ],
+      "then": [
+        "<franchise> <original entry> gameplay",
+        "<franchise> <era> commercial"
+      ]
+    },
+    "discontinuation": {
+      "now": [
+        "<product> shutting down news footage",
+        "<product> last day"
+      ],
+      "then": [
+        "<product> original commercial",
+        "<product> <era> ad",
+        "<product> unboxing <era>"
+      ]
+    },
+    "anniversary": {
+      "now": [
+        "<subject> anniversary retrospective official"
+      ],
+      "then": [
+        "<subject> original trailer <year>",
+        "<subject> <era> commercial",
+        "<subject> original gameplay"
+      ]
+    },
+    "tech_shift": {
+      "now": [
+        "<new thing> official announcement",
+        "<new thing> keynote"
+      ],
+      "then": [
+        "<old thing> commercial <era>",
+        "<old thing> in use <era> footage"
+      ]
+    }
+  }
+}

@@ -1,0 +1,56 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>media-pipeline — operating center</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header>
+  <h1>media-pipeline</h1>
+  <div class="header-right">
+    <div id="gateway-pill" class="pill">checking…</div>
+    <button data-act="gateway_restart">Restart gateway</button>
+  </div>
+</header>
+
+<section id="funnel-section" class="card">
+  <h2>Funnel <span class="hint">(trailing 7d)</span></h2>
+  <div id="funnel-body">loading…</div>
+</section>
+
+<section id="jobs-section" class="card">
+  <h2>Cron jobs</h2>
+  <div id="jobs-body">loading…</div>
+</section>
+
+<section id="qc-section" class="card">
+  <h2>QC transparency <span class="hint">(today's produced reels)</span></h2>
+  <div id="qc-body">loading…</div>
+</section>
+
+<section id="queue-section" class="card">
+  <h2>Pending queue</h2>
+  <div id="queue-body">loading…</div>
+</section>
+
+<section id="posted-section" class="card">
+  <h2>Recently published</h2>
+  <div id="posted-body">loading…</div>
+</section>
+
+<section id="skipped-section" class="card">
+  <h2>Skipped / held</h2>
+  <div id="skipped-body">loading…</div>
+</section>
+
+<section id="sources-section" class="card">
+  <h2>Source channel diversity</h2>
+  <div id="sources-body">loading…</div>
+</section>
+
+<div id="toast"></div>
+
+<script src="/app.js"></script>
+</body>
+</html>
