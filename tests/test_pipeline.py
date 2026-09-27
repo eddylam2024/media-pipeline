@@ -66,6 +66,8 @@ class OverlayCheckTest(unittest.TestCase):
 
     def test_hud_words_are_allowed(self):
         self.assertEqual(overlay_check._overlay_words([("SCORE", 95), ("LEVEL", 92)]), [])
+        self.assertEqual(overlay_check._overlay_words([("SGDRE", 90)]), [])  # OCR misread of SCORE
+        self.assertEqual(overlay_check._overlay_words([("RETROCLIPS.COM", 21)]), ["RETROCLIPS.COM"])
         self.assertEqual(overlay_check._overlay_words([("Recorded", 91)]), ["Recorded"])
         self.assertEqual(overlay_check._overlay_words([("Recorded", 40)]), [])
 

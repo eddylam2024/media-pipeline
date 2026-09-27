@@ -41,9 +41,9 @@ MIN_MOTION = 5.0         # median temporal std below this = static shot
 MIN_COVERAGE = 0.005     # corner fraction of still-edge pixels worth OCRing
 CORNER_H, CORNER_W = 0.25, 0.35
 
-MIN_WORD_CONF = 80       # tesseract per-word confidence; drops misreads
+MIN_WORD_CONF = 70       # tesseract per-word confidence; drops misreads
 WORD_RE = re.compile(r"^[A-Za-z]{4,}$")
-URL_RE = re.compile(r"(\.(com|net|org|tv|io|co)\b|www\.|@\w{3,})", re.I)
+URL_RE = re.compile(r"([A-Za-z0-9]{3,}\.(com|net|org|tv|io|co)\b|www\.|@\w{3,})", re.I)
 # Words that appear in native game HUDs, which the QC rules allow.
 HUD_WORDS = {
     "score", "level", "life", "lives", "time", "rings", "coins", "stage",
@@ -68,7 +68,8 @@ def _gray_frame(clip, t):
     return np.frombuffer(raw[:WIDTH * h], np.uint8).reshape(h, WIDTH).astype(np.float32)
 
 
-def _ocr(region):
+def _tesseract(region):
+    """[(word, confidence)] for one grayscale region."""
     with tempfile.TemporaryDirectory() as d:
         pgm, png = f"{d}/r.pgm", f"{d}/r.png"
         with open(pgm, "wb") as f:
@@ -89,17 +90,43 @@ def _ocr(region):
     return words
 
 
+def _ocr(region):
+    """OCR the region as-is and inverted, keeping each word's best reading.
+    Light-on-dark overlay text is common and some tesseract builds read it
+    poorly unless inverted."""
+    best = {}
+    for variant in (region, 255 - region):
+        for word, conf in _tesseract(variant):
+            best[word] = max(conf, best.get(word, -1))
+    return list(best.items())
+
+
+def _is_hud_word(word):
+    """HUD word, allowing a couple of OCR misreads (SCORE read as SGDRE):
+    same length, same first letter, at most 2 letters different (1 for
+    4-letter words)."""
+    w = word.lower()
+    if w in HUD_WORDS:
+        return True
+    limit = 1 if len(w) <= 4 else 2
+    return any(len(h) == len(w) and h[0] == w[0]
+               and sum(a != b for a, b in zip(h, w)) <= limit
+               for h in HUD_WORDS)
+
+
 def _overlay_words(words):
     """Confident words that look like overlay text rather than a game HUD."""
     hits = []
     for word, conf in words:
-        if conf < MIN_WORD_CONF:
-            continue
+        # a URL or handle is distinctive enough to count at any confidence;
+        # OCR confidence varies a lot between tesseract builds
         if URL_RE.search(word):
             hits.append(word)
             continue
+        if conf < MIN_WORD_CONF:
+            continue
         core = word.strip(".,:;!?'\"()[]-")
-        if WORD_RE.match(core) and core.lower() not in HUD_WORDS:
+        if WORD_RE.match(core) and not _is_hud_word(core):
             hits.append(core)
     return hits
 
