@@ -5,11 +5,25 @@
 Built on [Hermes Agent](https://github.com/NousResearch/hermes-agent) by
 [Nous Research](https://nousresearch.com).
 
-![Four reels produced and published by the pipeline](docs/examples/showcase.jpg)
+### Output: reels produced and published end to end, with no human editing
 
-<sub>Frames from four reels the pipeline produced and published for
-@nostalgic.drop. The header card and hook are rendered by the pipeline, and the
-footage is a single ≤25s moment from the source video.</sub>
+<table>
+  <tr>
+    <td align="center" width="33%"><img src="docs/screenshots/reel-jim-carrey-10m-check.jpg" alt="Jim Carrey reel" width="240"><br><sub><b>2,011 reach</b> · 2,521 views · 71 likes</sub></td>
+    <td align="center" width="33%"><img src="docs/screenshots/reel-mickey-mouse-club.jpg" alt="Mickey Mouse Club reel" width="240"><br><sub><b>1,964 reach</b> · 2,575 views · 55 likes</sub></td>
+    <td align="center" width="33%"><img src="docs/screenshots/reel-chadwick-boseman-howard-commencement-speech.jpg" alt="Chadwick Boseman reel" width="240"><br><sub><b>1,180 reach</b> · 1,488 views · 50 likes</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/reel-gta6-ps5-controllers.jpg" alt="GTA 6 reel" width="240"><br><sub><b>1,115 reach</b> · 1,296 views · 7 saves</sub></td>
+    <td align="center"><img src="docs/screenshots/reel-mario64-wingcap.jpg" alt="Super Mario 64 reel" width="240"><br><sub><b>1,114 reach</b> · 1,509 views · 3 shares</sub></td>
+    <td align="center"><img src="docs/screenshots/reel-tangled-live-action.jpg" alt="Tangled reel" width="240"><br><sub><b>466 reach</b> · 559 views · 31 likes</sub></td>
+  </tr>
+</table>
+
+<sub>Frames from reels the pipeline published for @nostalgic.drop. The agents
+chose the story, the footage, the hook, and the call to action. The code
+rendered the header card, gold emphasis, and layout. Each clip is a single
+≤25s moment from the source video.</sub>
 
 ---
 
@@ -84,9 +98,28 @@ better. That structure is now written into the producer's rules.
 | 5. Learn | `reel-5-analytics` | `fetch_insights.py` |
 | Upkeep | `ig-token-refresh` | `refresh_token.py` |
 
-A local dashboard (`scripts/dashboard.py`, localhost only) shows the funnel,
-the QC evidence for every reel, and the queue, and lets you pause, trigger, or
-skip stages.
+### Operating dashboard
+
+A local control panel (`scripts/dashboard.py`, localhost only) gives the
+operator a single view of the pipeline: the stage-by-stage funnel, the health
+of every scheduled job, the QC evidence behind each reel, and the review
+queue. From there you can run, pause, or resume any stage, or edit, skip, or
+approve a reel.
+
+<p align="center">
+  <img src="docs/screenshots/dashboard-pipeline.png" alt="Dashboard: 7-day funnel and scheduled job health" width="720">
+</p>
+
+<sub>Seven-day funnel from the live deployment. "Honest zero" flags days when
+nothing cleared the bar, so nothing was published. Below it: each Hermes job
+with its schedule, last run, and status.</sub>
+
+<p align="center">
+  <img src="docs/screenshots/dashboard-qc.png" alt="Dashboard: QC transparency timeline" width="720">
+</p>
+
+<sub>QC transparency: one square per frame the agent inspected. A reel with
+missing or failing evidence shows red and can't be finalized.</sub>
 
 **See one reel traced end to end** through every stage's actual output in
 [docs/example-run.md](docs/example-run.md).
