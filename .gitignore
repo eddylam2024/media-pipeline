@@ -12,6 +12,7 @@ qc_frames_*/
 *.mp4
 *.mov
 *.jpg
+!docs/**/*.jpg
 
 # Runtime state written by the pipeline
 news.json
