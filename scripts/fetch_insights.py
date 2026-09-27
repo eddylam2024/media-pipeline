@@ -21,7 +21,7 @@ expose `follows` for REELS media):
 Usage: python3 fetch_insights.py --config ~/media-pipeline/ig_config.json
 Exit 2 if nothing has been posted yet (normal in the first days).
 """
-import argparse, json, os, re, sys, subprocess, datetime
+import argparse, json, os, re, sys, subprocess, datetime, statistics
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 GRAPH_VERSION = os.environ.get("IG_GRAPH_VERSION", "v21.0")
@@ -47,6 +47,15 @@ NAMED_ENTITY_RE = re.compile(r"[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+")
 # composite weights, priority order (renormalized over present terms)
 W_REWATCH, W_SAVE, W_VELOCITY, W_COMPLETION, W_NOISE = 6, 5, 4, 2, 1
 INGREDIENT_KEYS = ("emotional_charge", "causal_chain", "personal_ritual")
+
+# A group differs meaningfully when its mean score is at least this many
+# standard deviations (of all scores in the window) away from the comparison.
+# Replaces the old fixed +/-20% ratio: once reach settled into a narrow band,
+# every score sat within 20% of every other and no signal could ever fire.
+EFFECT_SD = 0.5
+# A self-assessed attribute marked the same way on >= this share of posts
+# carries no information — reported as a diagnostic instead of a signal.
+SATURATION = 0.9
 
 
 def clip_seconds(name):
@@ -135,13 +144,19 @@ def _signal(rows, present_pred, tag, note_label, min_each=3):
     if len(have) < min_each or len(miss) < min_each:
         return []
     a, b = sum(have) / len(have), sum(miss) / len(miss)
-    if a > b * 1.2:
-        return [{"tag": tag, "weight": 1, "n": len(have),
-                 "note": "%s avg %.3f vs without %.3f" % (note_label, a, b)}]
-    if b > a * 1.2:
-        return [{"tag": tag, "weight": -1, "n": len(have),
-                 "note": "%s avg %.3f vs without %.3f" % (note_label, a, b)}]
-    return []
+    sd = _score_sd(rows)
+    if not sd:
+        return []
+    effect = (a - b) / sd
+    if abs(effect) < EFFECT_SD:
+        return []
+    return [{"tag": tag, "weight": 1 if effect > 0 else -1, "n": len(have),
+             "note": "%s avg %.3f vs without %.3f (%.1f sd)" % (note_label, a, b, effect)}]
+
+
+def _score_sd(rows):
+    scores = [r["score"] for r in rows]
+    return statistics.pstdev(scores) if len(scores) >= 2 else 0.0
 
 
 def _collect_rows(perf, ttl_days):
@@ -184,6 +199,7 @@ def _archetype_signals(rows, min_each=3):
     if not rows:
         return signals
     baseline = sum(r["score"] for r in rows) / len(rows)
+    sd = _score_sd(rows)
     by_arch = {}
     for r in rows:
         if r["archetype"]:
@@ -192,14 +208,13 @@ def _archetype_signals(rows, min_each=3):
         if len(scores) < min_each:
             continue
         avg = sum(scores) / len(scores)
-        if avg > baseline * 1.2:
-            signals.append({"tag": "archetype:%s" % arch, "weight": 1,
+        effect = (avg - baseline) / sd if sd else 0.0
+        if abs(effect) >= EFFECT_SD:
+            signals.append({"tag": "archetype:%s" % arch,
+                            "weight": 1 if effect > 0 else -1,
                             "n": len(scores),
-                            "note": "%s avg %.3f vs baseline %.3f" % (arch, avg, baseline)})
-        elif avg < baseline * 0.8:
-            signals.append({"tag": "archetype:%s" % arch, "weight": -1,
-                            "n": len(scores),
-                            "note": "%s avg %.3f vs baseline %.3f" % (arch, avg, baseline)})
+                            "note": "%s avg %.3f vs baseline %.3f (%.1f sd)"
+                                    % (arch, avg, baseline, effect)})
     return signals
 
 
@@ -273,6 +288,38 @@ def _top_subjects(perf, ttl_days=TOP_SUBJECTS_TTL_DAYS, n=TOP_SUBJECTS_N):
              "reel": r["name"]} for r in ranked]
 
 
+def _diagnostics(rows):
+    """Plain-language warnings about the loop's own inputs, so the analytics
+    agent can report why signals are thin instead of silently emitting none."""
+    notes = []
+    if not rows:
+        return notes
+    n = len(rows)
+    for key in INGREDIENT_KEYS:
+        share = sum(1 for r in rows if r["ingredients"].get(key)) / n
+        if share >= SATURATION or share <= 1 - SATURATION:
+            notes.append("self-assessment saturated: %s marked %s on %.0f%% of %d posts "
+                         "— no contrast to learn from; the producer must grade hooks honestly"
+                         % (key, "true" if share >= 0.5 else "false",
+                            max(share, 1 - share) * 100, n))
+    ok = sum(1 for r in rows if r["hook_structure_ok"] is True) / n
+    if ok >= SATURATION:
+        notes.append("self-assessment saturated: hook_structure_ok true on %.0f%% of %d posts"
+                     % (ok * 100, n))
+    counts = {}
+    for r in rows:
+        if r["archetype"]:
+            counts[r["archetype"]] = counts.get(r["archetype"], 0) + 1
+    if counts and max(counts.values()) < 3:
+        notes.append("archetypes too fragmented: no tag has 3+ posts (%d distinct tags) "
+                     "— reuse existing tags instead of coining new ones" % len(counts))
+    scores = [r["score"] for r in rows]
+    if len(scores) >= 4 and min(scores) > 0 and max(scores) / min(scores) < 1.3:
+        notes.append("scores compressed (%.3f-%.3f): posts are performing alike"
+                     % (min(scores), max(scores)))
+    return notes
+
+
 def build_lessons(perf):
     """Derive decaying, rule-based CONTENT-ATTRIBUTE signals from recent
     performance. Only entries posted within LESSONS_TTL_DAYS count — that IS
@@ -317,6 +364,7 @@ def build_lessons(perf):
         "sample_size": len(rows),
         "signals": signals,
         "anti_signals": anti_signals,
+        "diagnostics": _diagnostics(rows),
         "top_subjects": _top_subjects(perf),
     }
 

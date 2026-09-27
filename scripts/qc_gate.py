@@ -9,8 +9,12 @@ The producer stage is REQUIRED to vision-check sampled frames of the actual
 cut clip and record what it saw. This script refuses to let a candidate be
 finalized (consumed_by stamped, news.json marked "produced") unless that
 audit trail exists, covers the clip densely enough, and every frame passed.
-It does not itself look at pixels — it enforces that the producer's vision
-pass left real, checkable evidence instead of a bare "qc_retries: 0" claim.
+
+It then runs an independent pixel-level check (overlay_check.py) on the cut
+clip, so a burned-in watermark fails the gate even if the agent's report
+called every frame clean. A flagged clip can only pass with an explicit
+"overlay_override": {"reason": "..."} in the manifest (e.g. text that is
+genuinely part of the scene), which is printed so a reviewer sees it.
 
 Usage:
   python3 qc_gate.py runs/<date>/produced_<HHMM>.json
@@ -18,6 +22,7 @@ Usage:
    go back to the scout's next-best candidate or report an honest zero)
 
 Required shape in the produced_<HHMM>.json manifest:
+  "folder": "<queue folder name>"    (clip checked: queue/<folder>/clip_01.mp4)
   "source": {"start": <float>, "end": <float>, ...}
   "qc_frames": [
     {"t": <float, seconds into the source video>,
@@ -31,12 +36,45 @@ ceil(duration / 4) frames, duration = source.end - source.start.
 """
 import json
 import math
+import os
 import sys
+
+BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 def fail(msg):
     sys.stderr.write(f"QC GATE FAILED: {msg}\n")
     sys.exit(1)
+
+
+def check_overlay(data):
+    """Independent watermark check on the actual clip. Fails the gate on
+    overlay text unless the manifest carries an explicit override reason."""
+    folder = data.get("folder")
+    if not folder:
+        fail("manifest missing 'folder' — cannot locate the clip for the overlay check")
+    clip = os.path.join(BASE, "queue", folder, "clip_01.mp4")
+    if not os.path.exists(clip):
+        fail(f"clip not found for overlay check: {clip}")
+
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    from overlay_check import check
+    result = check(clip)
+    status = result["status"]
+    if status == "flagged":
+        found = "; ".join(f"{f['corner']}: {f['text']!r}" for f in result["findings"])
+        reason = ((data.get("overlay_override") or {}).get("reason") or "").strip()
+        if len(reason) < 20:
+            fail(
+                f"burned-in text/watermark detected in the clip ({found}). Re-cut "
+                "a clean window or pick another source. If the text is genuinely "
+                "part of the scene, add \"overlay_override\": {\"reason\": \"...\"} "
+                "explaining why."
+            )
+        return f"FLAGGED ({found}) — overridden: {reason}"
+    if status in ("inconclusive", "skipped"):
+        sys.stderr.write(f"overlay check {status}: {result.get('reason')}\n")
+    return status
 
 
 def main():
@@ -94,7 +132,10 @@ def main():
     if bad:
         fail("qc_frames did not clear the gate:\n  " + "\n  ".join(bad))
 
-    print(f"QC GATE PASSED: {len(frames)} frames, all pass, duration {duration:.1f}s")
+    overlay_note = check_overlay(data)
+
+    print(f"QC GATE PASSED: {len(frames)} frames, all pass, duration {duration:.1f}s"
+          f"; overlay check: {overlay_note}")
     sys.exit(0)
 
 

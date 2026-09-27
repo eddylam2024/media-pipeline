@@ -27,7 +27,7 @@ BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dashboard_static")
 AUDIT_LOG = os.path.join(BASE, "dashboard_audit.jsonl")
 IG_CONFIG = os.environ.get("IG_CONFIG") or os.path.join(BASE, "ig_config.json")
-PROFILE = "media-pipeline"
+PROFILE = os.environ.get("MEDIA_PIPELINE_PROFILE", "media-pipeline")
 
 
 def audit(action, params, result):

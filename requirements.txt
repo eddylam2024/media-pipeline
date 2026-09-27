@@ -2,3 +2,4 @@ yt-dlp
 Pillow
 requests
 certifi
+numpy

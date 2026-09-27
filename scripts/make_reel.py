@@ -1,29 +1,26 @@
 #!/usr/bin/env python3
 """
-make_reel.py v4 — "screenshotted post" format for Nostalgic Drop.
+make_reel.py — renders the "screenshotted post" reel format.
 
-FORMAT (locked by Eddy 2026-08-02 — full rebuild, replaces the v1-v3
-sub-shot/zoom/THEN-NOW-pairing engine entirely):
-  - Fixed header card: circular avatar + "Nostalgic Drop" + gold verified
-    checkmark + "@nostalgic.drop" handle, Inter (plain UI sans, not Anton).
-  - Hook text below the header, styled as the "post caption" — Inter bold,
-    white with *word* gold emphasis, real color emoji supported inline.
-  - ONE continuous video clip below, full-bleed width, fit-to-width
-    preserving its native aspect ratio — NO crop, NO zoom, NO sub-shot
-    cuts, NO badges, NO CTA card. The clip plays close to as found.
-  - Output carries the clip's ORIGINAL source audio (baked in). Changed
-    2026-08-02 per Eddy's explicit request — no more silent render + live
-    Instagram Audio API pick; the source clip's own sound plays as-is.
-    If a source clip has no audio stream, a silent track is still muxed in
-    so the container always has an audio stream (Reels containers expect one).
+  - Header card: circular avatar + account name + verified badge + handle,
+    all from brand.json, set in Inter.
+  - Hook text below the header, styled as the post caption — white with
+    *word* gold emphasis; real color emoji render inline.
+  - ONE continuous clip below, full width, native aspect ratio preserved —
+    no crop, zoom, or cuts. The clip plays close to as found.
+  - Optional CTA line below the clip, only when the clip leaves room above
+    Instagram's bottom safe zone.
+  - The clip's original audio is baked in. If the clip has no audio stream,
+    a silent track is muxed in so the container always has one.
 
-reel.json (v4):
+reel.json:
 {
   "hook": "The Button That Started *This* Disaster Disappeared 😱",
-  "clip": "clip_01.mp4"
+  "clip": "clip_01.mp4",
+  "cta": "optional share prompt"
 }
 Usage: python3 make_reel.py <post_dir>
-Output: <post_dir>/reel.mp4
+Output: <post_dir>/reel.mp4 (1080x1920)
 """
 import json, os, re, sys, subprocess, tempfile, shutil
 
@@ -31,7 +28,21 @@ from PIL import Image, ImageDraw, ImageFont
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FONT_INTER = os.path.join(BASE, "fonts", "Inter-Variable.ttf")
-AVATAR = os.path.join(BASE, "assets", "avatar_256.png")
+BRAND_FILE = os.path.join(BASE, "brand.json")
+
+
+def load_brand():
+    """Account branding for the header card (brand.json at the repo root)."""
+    brand = {"name": "Nostalgic Drop", "handle": "@nostalgic.drop",
+             "avatar": "assets/avatar_256.png", "verified_badge": True}
+    if os.path.exists(BRAND_FILE):
+        with open(BRAND_FILE) as f:
+            brand.update(json.load(f))
+    return brand
+
+
+BRAND = load_brand()
+AVATAR = os.path.join(BASE, BRAND["avatar"])
 APPLE_EMOJI = "/System/Library/Fonts/Apple Color Emoji.ttc"
 EMOJI_STRIKE = 160  # one of the few valid Apple Color Emoji bitmap sizes
 
@@ -229,8 +240,8 @@ def render_header_hook(hook, out_png):
     tx = ax + AVATAR_D + 20
     f_name = inter(38, 700)   # ONLY "Nostalgic Drop" is bold, everything else regular
     f_handle = inter(28, 400)
-    name = "Nostalgic Drop"
-    handle = "@nostalgic.drop"
+    name = BRAND["name"]
+    handle = BRAND["handle"]
 
     # Center the name+handle block precisely on the avatar's height, using
     # REAL glyph ink metrics (textbbox), not assumed font-size offsets --
@@ -249,7 +260,8 @@ def render_header_hook(hook, out_png):
     d.text((tx, name_y), name, font=f_name, fill=WHITE)
     nw = d.textbbox((tx, name_y), name, font=f_name)[2] - tx
     badge_cy = block_top + name_h / 2  # vertically centered on the name's real ink
-    draw_check_badge(d, tx + nw + 20, badge_cy, 16)
+    if BRAND["verified_badge"]:
+        draw_check_badge(d, tx + nw + 20, badge_cy, 16)
 
     handle_y = block_top + name_h + NAME_HANDLE_GAP - handle_top_off
     d.text((tx, handle_y), handle, font=f_handle, fill=GRAY)
